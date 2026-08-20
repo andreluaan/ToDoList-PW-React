@@ -6,20 +6,20 @@ class TarefaController {
 
   criar = (req, res) => {
     try {
-      const tarefa = this.service.criarTarefa(req.body);
+      const tarefa = this.service.criarTarefa(req.body, req.usuarioId);
       res.status(201).json(tarefa);
     } catch (err) {
       res.status(400).json({ erro: err.message });
     }
   };
 
-  listar = (_req, res) => {
-    res.json(this.service.listarTarefas());
+  listar = (req, res) => {
+    res.json(this.service.listarTarefas(req.usuarioId));
   };
 
   buscar = (req, res) => {
     try {
-      res.json(this.service.buscarTarefa(req.params.id));
+      res.json(this.service.buscarTarefa(req.params.id, req.usuarioId));
     } catch (err) {
       res.status(404).json({ erro: err.message });
     }
@@ -27,7 +27,7 @@ class TarefaController {
 
   concluir = (req, res) => {
     try {
-      res.json(this.service.concluirTarefa(req.params.id));
+      res.json(this.service.concluirTarefa(req.params.id, req.usuarioId));
     } catch (err) {
       res.status(404).json({ erro: err.message });
     }
@@ -35,7 +35,7 @@ class TarefaController {
 
   reabrir = (req, res) => {
     try {
-      res.json(this.service.reabrirTarefa(req.params.id));
+      res.json(this.service.reabrirTarefa(req.params.id, req.usuarioId));
     } catch (err) {
       res.status(404).json({ erro: err.message });
     }
@@ -43,7 +43,7 @@ class TarefaController {
 
   atualizar = (req, res) => {
     try {
-      const tarefa = this.service.atualizarTarefa(req.params.id, req.body);
+      const tarefa = this.service.atualizarTarefa(req.params.id, req.body, req.usuarioId);
       res.json(tarefa);
     } catch (err) {
       const status = err.message === 'Tarefa não encontrada.' ? 404 : 400;
@@ -53,7 +53,7 @@ class TarefaController {
 
   remover = (req, res) => {
     try {
-      this.service.removerTarefa(req.params.id);
+      this.service.removerTarefa(req.params.id, req.usuarioId);
       res.status(204).send();
     } catch (err) {
       res.status(404).json({ erro: err.message });

@@ -1,18 +1,17 @@
-
 class ITarefaRepository {
-  salvar(_tarefa) {
+  salvar(_tarefa, _usuarioId) {
     throw new Error('Método salvar() não implementado.');
   }
 
-  buscarPorId(_id) {
+  buscarPorId(_id, _usuarioId) {
     throw new Error('Método buscarPorId() não implementado.');
   }
 
-  listar() {
+  listar(_usuarioId) {
     throw new Error('Método listar() não implementado.');
   }
 
-  remover(_id) {
+  remover(_id, _usuarioId) {
     throw new Error('Método remover() não implementado.');
   }
 }
