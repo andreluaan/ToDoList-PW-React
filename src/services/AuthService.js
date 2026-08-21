@@ -17,20 +17,23 @@ class AuthService {
       throw new Error('A senha precisa ter pelo menos 6 caracteres.');
     }
 
-    const jaExiste = this.usuarioRepository.buscarPorEmail(email);
+    const emailNormalizado = this._normalizarEmail(email);
+
+    const jaExiste = this.usuarioRepository.buscarPorEmail(emailNormalizado);
     if (jaExiste) {
       throw new Error('Já existe um usuário com esse e-mail.');
     }
 
     const senhaHash = bcrypt.hashSync(senha, SALT_ROUNDS);
-    const usuario = new Usuario({ nome, email, senhaHash });
+    const usuario = new Usuario({ nome, email: emailNormalizado, senhaHash });
     const id = this.usuarioRepository.criar(usuario);
 
-    return this._gerarResposta(id, nome, email);
+    return this._gerarResposta(id, nome, emailNormalizado);
   }
 
   login({ email, senha }) {
-    const usuario = this.usuarioRepository.buscarPorEmail(email);
+    const emailNormalizado = this._normalizarEmail(email);
+    const usuario = this.usuarioRepository.buscarPorEmail(emailNormalizado);
     if (!usuario) {
       throw new Error('E-mail ou senha inválidos.');
     }
@@ -41,6 +44,10 @@ class AuthService {
     }
 
     return this._gerarResposta(usuario.id, usuario.toJSON().nome, usuario.email);
+  }
+
+  _normalizarEmail(email) {
+    return (email || '').trim().toLowerCase();
   }
 
   _gerarResposta(id, nome, email) {
