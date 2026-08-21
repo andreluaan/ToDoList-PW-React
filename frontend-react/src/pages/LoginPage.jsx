@@ -27,40 +27,48 @@ export function LoginPage() {
 
   return (
     <div className="auth-shell">
-      <form className="auth-card" onSubmit={aoEnviar}>
+      <div className="auth-hero">
         <span className="brand-name">Feito.</span>
-        <p className="auth-subtitle">Entre para ver suas tarefas.</p>
+        <p>Organize suas tarefas do seu jeito, um passo de cada vez.</p>
+      </div>
 
-        {erro && <p className="feedback">{erro}</p>}
+      <div className="auth-form-side">
+        <form className="auth-card" onSubmit={aoEnviar}>
+          <span className="brand-name">Feito.</span>
+          <h2 className="auth-title">Bem-vindo de volta</h2>
+          <p className="auth-subtitle">Entre para ver suas tarefas.</p>
 
-        <label className="auth-label" htmlFor="email">E-mail</label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-        />
+          {erro && <p className="feedback">{erro}</p>}
 
-        <label className="auth-label" htmlFor="senha">Senha</label>
-        <input
-          id="senha"
-          type="password"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          required
-          autoComplete="current-password"
-        />
+          <label className="auth-label" htmlFor="email">E-mail</label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
 
-        <button type="submit" disabled={carregando}>
-          {carregando ? 'Entrando...' : 'Entrar'}
-        </button>
+          <label className="auth-label" htmlFor="senha">Senha</label>
+          <input
+            id="senha"
+            type="password"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
 
-        <p className="auth-footer">
-          Não tem conta? <Link to="/registro">Criar conta</Link>
-        </p>
-      </form>
+          <button type="submit" disabled={carregando}>
+            {carregando ? 'Entrando...' : 'Entrar'}
+          </button>
+
+          <p className="auth-footer">
+            Não tem conta? <Link to="/registro">Criar conta</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }

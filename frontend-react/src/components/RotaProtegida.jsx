@@ -3,5 +3,5 @@ import { useAuth } from '../context/AuthContext';
 
 export function RotaProtegida({ children }) {
   const { autenticado } = useAuth();
-  return autenticado ? children : <Navigate to="/login" replace />;
+  return autenticado ? children : <Navigate to="/registro" replace />;
 }

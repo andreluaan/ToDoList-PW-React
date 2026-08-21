@@ -154,14 +154,18 @@ export function TasksPage() {
             </button>
           ))}
         </nav>
-
-        <button type="button" className="btn-sair" onClick={sair}>Sair</button>
       </aside>
 
       <main className="content">
         <header className="content-header">
-          <h1>{categoriaAtiva || 'Todas'}</h1>
-          <p className="subtitle">Suas tarefas, organizadas por categoria.</p>
+          <div>
+            <h1>{categoriaAtiva || 'Todas'}</h1>
+            <p className="subtitle">Suas tarefas, organizadas por categoria.</p>
+          </div>
+          <div className="user-chip">
+            <span>{usuario?.nome}</span>
+            <button type="button" onClick={sair}>Sair</button>
+          </div>
         </header>
 
         <form className="add-task-card" onSubmit={aoCriarTarefa}>
