@@ -4,16 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { TaskRow } from '../components/TaskRow';
 import { Modal } from '../components/Modal';
 import { ListaFormModal } from '../components/ListaFormModal';
+import { UserMenu } from '../components/UserMenu';
 
 const SEM_CATEGORIA = 'Sem categoria';
-
-function obterIniciais(nome) {
-  if (!nome) return '?';
-  const partes = nome.trim().split(/\s+/);
-  const primeira = partes[0]?.[0] || '';
-  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : '';
-  return (primeira + ultima).toUpperCase();
-}
 
 export function TasksPage() {
   const { usuario, sair } = useAuth();
@@ -35,6 +28,18 @@ export function TasksPage() {
   const [listaModalAberto, setListaModalAberto] = useState(false);
   const [listaEditando, setListaEditando] = useState(null);
   const [listaExcluindo, setListaExcluindo] = useState(null);
+
+  const [menuUsuarioAberto, setMenuUsuarioAberto] = useState(false);
+
+  useEffect(() => {
+    function aoClicarFora(evento) {
+      if (!evento.target.closest('.user-menu')) {
+        setMenuUsuarioAberto(false);
+      }
+    }
+    document.addEventListener('mousedown', aoClicarFora);
+    return () => document.removeEventListener('mousedown', aoClicarFora);
+  }, []);
 
   useEffect(() => {
     carregarListas();
@@ -190,8 +195,21 @@ export function TasksPage() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand-card">
-          <span className="brand-name">Feito.</span>
-          <span className="brand-tag">olá, {usuario?.nome?.split(' ')[0]}</span>
+          <div className="brand-card-top">
+            <div className="brand-card-textos">
+              <span className="brand-name">Feito.</span>
+              <span className="brand-tag">olá, {usuario?.nome?.split(' ')[0]}</span>
+            </div>
+            <div className="brand-card-user">
+              <UserMenu
+                usuario={usuario}
+                aberto={menuUsuarioAberto}
+                onToggle={() => setMenuUsuarioAberto((v) => !v)}
+                onSair={sair}
+                sobreGradiente
+              />
+            </div>
+          </div>
         </div>
 
         <div className="listas-card">
@@ -237,17 +255,13 @@ export function TasksPage() {
                 : 'Suas tarefas, organizadas por categoria.'}
             </p>
           </div>
-          <div className="user-chip">
-            <span className="user-avatar">{obterIniciais(usuario?.nome)}</span>
-            <span className="user-nome">{usuario?.nome}</span>
-            <span className="user-chip-divisor" />
-            <button type="button" className="user-sair" onClick={sair} title="Sair" aria-label="Sair">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </button>
+          <div className="content-header-user">
+            <UserMenu
+              usuario={usuario}
+              aberto={menuUsuarioAberto}
+              onToggle={() => setMenuUsuarioAberto((v) => !v)}
+              onSair={sair}
+            />
           </div>
         </header>
 
@@ -281,7 +295,13 @@ export function TasksPage() {
                 <datalist id="categorias-existentes">
                   {categorias.map((cat) => <option key={cat} value={cat} />)}
                 </datalist>
-                <button type="submit">Adicionar</button>
+                <button type="submit" className="btn-adicionar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                  <span className="btn-adicionar-texto">Adicionar</span>
+                </button>
               </div>
             </form>
 
