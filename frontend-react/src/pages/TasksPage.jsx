@@ -7,6 +7,14 @@ import { ListaFormModal } from '../components/ListaFormModal';
 
 const SEM_CATEGORIA = 'Sem categoria';
 
+function obterIniciais(nome) {
+  if (!nome) return '?';
+  const partes = nome.trim().split(/\s+/);
+  const primeira = partes[0]?.[0] || '';
+  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : '';
+  return (primeira + ultima).toUpperCase();
+}
+
 export function TasksPage() {
   const { usuario, sair } = useAuth();
 
@@ -20,7 +28,6 @@ export function TasksPage() {
 
   const [titulo, setTitulo] = useState('');
   const [categoriaNova, setCategoriaNova] = useState('');
-  const [descricaoNova, setDescricaoNova] = useState('');
 
   const [tarefaEditando, setTarefaEditando] = useState(null);
   const [tarefaExcluindo, setTarefaExcluindo] = useState(null);
@@ -109,13 +116,12 @@ export function TasksPage() {
     try {
       await api.criarTarefa({
         titulo: tituloLimpo,
-        descricao: descricaoNova.trim(),
+        descricao: '',
         categoria: categoriaNova.trim() || null,
         listaId: listaAtivaId,
       });
       setTitulo('');
       setCategoriaNova('');
-      setDescricaoNova('');
       setErro('');
       await carregarTarefas(listaAtivaId);
     } catch (err) {
@@ -188,37 +194,40 @@ export function TasksPage() {
           <span className="brand-tag">olá, {usuario?.nome?.split(' ')[0]}</span>
         </div>
 
-        <div className="listas-header">
-          <span>Suas listas</span>
-          <button type="button" className="btn-nova-lista" onClick={() => { setListaEditando(null); setListaModalAberto(true); }}>
-            + Nova
-          </button>
-        </div>
+        <div className="listas-card">
+          <div className="listas-header">
+            <span>Suas listas</span>
+            <button type="button" className="btn-nova-lista" onClick={() => { setListaEditando(null); setListaModalAberto(true); }}>
+              + Nova
+            </button>
+          </div>
 
-        <nav className="category-nav">
-          {listas.map((lista) => (
-            <div key={lista.id} className={`lista-item-wrapper${lista.id === listaAtivaId ? ' active' : ''}`}>
-              <button
-                type="button"
-                className={`category-item${lista.id === listaAtivaId ? ' active' : ''}`}
-                onClick={() => setListaAtivaId(lista.id)}
-              >
-                {lista.nome}
-                {lista.resetarDiariamente && <span className="badge-reset" title="Reseta todo dia">↻</span>}
-              </button>
-              <div className="lista-item-acoes">
-                <button type="button" onClick={() => { setListaEditando(lista); setListaModalAberto(true); }}>Editar</button>
-                <button type="button" className="excluir" onClick={() => setListaExcluindo(lista)}>Excluir</button>
+          <nav className="category-nav">
+            {listas.map((lista) => (
+              <div key={lista.id} className={`lista-item-wrapper${lista.id === listaAtivaId ? ' active' : ''}`}>
+                <button
+                  type="button"
+                  className={`category-item${lista.id === listaAtivaId ? ' active' : ''}`}
+                  onClick={() => setListaAtivaId(lista.id)}
+                >
+                  {lista.nome}
+                  {lista.resetarDiariamente && <span className="badge-reset" title="Reseta todo dia">↻</span>}
+                </button>
+                <div className="lista-item-acoes">
+                  <button type="button" onClick={() => { setListaEditando(lista); setListaModalAberto(true); }}>Editar</button>
+                  <button type="button" className="excluir" onClick={() => setListaExcluindo(lista)}>Excluir</button>
+                </div>
               </div>
-            </div>
-          ))}
-          {!carregandoListas && listas.length === 0 && (
-            <p className="estado-vazio-sidebar">Crie sua primeira lista.</p>
-          )}
-        </nav>
+            ))}
+            {!carregandoListas && listas.length === 0 && (
+              <p className="estado-vazio-sidebar">Crie sua primeira lista.</p>
+            )}
+          </nav>
+        </div>
       </aside>
 
       <main className="content">
+        <div className="content-inner">
         <header className="content-header">
           <div>
             <h1>{listaAtiva?.nome || 'Suas tarefas'}</h1>
@@ -229,8 +238,16 @@ export function TasksPage() {
             </p>
           </div>
           <div className="user-chip">
-            <span>{usuario?.nome}</span>
-            <button type="button" onClick={sair}>Sair</button>
+            <span className="user-avatar">{obterIniciais(usuario?.nome)}</span>
+            <span className="user-nome">{usuario?.nome}</span>
+            <span className="user-chip-divisor" />
+            <button type="button" className="user-sair" onClick={sair} title="Sair" aria-label="Sair">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
           </div>
         </header>
 
@@ -266,13 +283,6 @@ export function TasksPage() {
                 </datalist>
                 <button type="submit">Adicionar</button>
               </div>
-              <input
-                type="text"
-                className="add-task-descricao"
-                placeholder="Descrição (opcional)"
-                value={descricaoNova}
-                onChange={(e) => setDescricaoNova(e.target.value)}
-              />
             </form>
 
             {carregandoTarefas ? (
@@ -303,6 +313,7 @@ export function TasksPage() {
             )}
           </>
         )}
+        </div>
       </main>
 
       <ListaFormModal
