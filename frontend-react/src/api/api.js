@@ -33,6 +33,8 @@ class ApiClient {
     return dados;
   }
 
+  // ---------- auth ----------
+
   registrar({ nome, email, senha }) {
     return this._request('/auth/registrar', {
       method: 'POST',
@@ -47,15 +49,40 @@ class ApiClient {
     });
   }
 
+  // ---------- listas ----------
 
-  listarTarefas() {
-    return this._request('/tarefas', { method: 'GET' });
+  listarListas() {
+    return this._request('/listas', { method: 'GET' });
   }
 
-  criarTarefa({ titulo, descricao, categoria }) {
+  criarLista({ nome, resetarDiariamente }) {
+    return this._request('/listas', {
+      method: 'POST',
+      body: JSON.stringify({ nome, resetarDiariamente }),
+    });
+  }
+
+  atualizarLista(id, { nome, resetarDiariamente }) {
+    return this._request(`/listas/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ nome, resetarDiariamente }),
+    });
+  }
+
+  removerLista(id) {
+    return this._request(`/listas/${id}`, { method: 'DELETE' });
+  }
+
+  // ---------- tarefas ----------
+
+  listarTarefas(listaId) {
+    return this._request(`/tarefas?listaId=${listaId}`, { method: 'GET' });
+  }
+
+  criarTarefa({ titulo, descricao, categoria, listaId }) {
     return this._request('/tarefas', {
       method: 'POST',
-      body: JSON.stringify({ titulo, descricao, categoria }),
+      body: JSON.stringify({ titulo, descricao, categoria, listaId }),
     });
   }
 

@@ -3,16 +3,20 @@ import { api } from '../api/api';
 import { useAuth } from '../context/AuthContext';
 import { TaskRow } from '../components/TaskRow';
 import { Modal } from '../components/Modal';
+import { ListaFormModal } from '../components/ListaFormModal';
 
 const SEM_CATEGORIA = 'Sem categoria';
 
 export function TasksPage() {
   const { usuario, sair } = useAuth();
 
+  const [listas, setListas] = useState([]);
+  const [listaAtivaId, setListaAtivaId] = useState(null);
+  const [carregandoListas, setCarregandoListas] = useState(true);
+
   const [tarefas, setTarefas] = useState([]);
-  const [categoriaAtiva, setCategoriaAtiva] = useState('');
+  const [carregandoTarefas, setCarregandoTarefas] = useState(false);
   const [erro, setErro] = useState('');
-  const [carregando, setCarregando] = useState(true);
 
   const [titulo, setTitulo] = useState('');
   const [categoriaNova, setCategoriaNova] = useState('');
@@ -21,49 +25,99 @@ export function TasksPage() {
   const [tarefaEditando, setTarefaEditando] = useState(null);
   const [tarefaExcluindo, setTarefaExcluindo] = useState(null);
 
+  const [listaModalAberto, setListaModalAberto] = useState(false);
+  const [listaEditando, setListaEditando] = useState(null);
+  const [listaExcluindo, setListaExcluindo] = useState(null);
+
   useEffect(() => {
-    carregarTarefas();
+    carregarListas();
   }, []);
 
-  async function carregarTarefas() {
+  useEffect(() => {
+    if (listaAtivaId) carregarTarefas(listaAtivaId);
+  }, [listaAtivaId]);
+
+  async function carregarListas() {
     try {
-      setCarregando(true);
-      const dados = await api.listarTarefas();
+      setCarregandoListas(true);
+      const dados = await api.listarListas();
+      setListas(dados);
+      if (dados.length > 0 && !dados.some((l) => l.id === listaAtivaId)) {
+        setListaAtivaId(dados[0].id);
+      } else if (dados.length === 0) {
+        setListaAtivaId(null);
+        setTarefas([]);
+      }
+    } catch (err) {
+      setErro(err.message);
+    } finally {
+      setCarregandoListas(false);
+    }
+  }
+
+  async function carregarTarefas(listaId) {
+    try {
+      setCarregandoTarefas(true);
+      const dados = await api.listarTarefas(listaId);
       setTarefas(dados);
     } catch (err) {
       setErro(err.message);
     } finally {
-      setCarregando(false);
+      setCarregandoTarefas(false);
     }
   }
 
-  const categorias = useMemo(
-    () => [...new Set(tarefas.map((t) => t.categoria || SEM_CATEGORIA))].sort(),
-    [tarefas]
-  );
+  const listaAtiva = listas.find((l) => l.id === listaAtivaId) || null;
 
-  useEffect(() => {
-    if (categoriaAtiva && !categorias.includes(categoriaAtiva)) {
-      setCategoriaAtiva('');
+  // ---------- listas ----------
+
+  async function aoSalvarLista({ nome, resetarDiariamente }) {
+    try {
+      if (listaEditando) {
+        await api.atualizarLista(listaEditando.id, { nome, resetarDiariamente });
+      } else {
+        const nova = await api.criarLista({ nome, resetarDiariamente });
+        setListaAtivaId(nova.id);
+      }
+      setListaModalAberto(false);
+      setListaEditando(null);
+      setErro('');
+      await carregarListas();
+    } catch (err) {
+      setErro(err.message);
     }
-  }, [categorias, categoriaAtiva]);
+  }
+
+  async function aoConfirmarExclusaoLista() {
+    try {
+      await api.removerLista(listaExcluindo.id);
+      setListaExcluindo(null);
+      setErro('');
+      await carregarListas();
+    } catch (err) {
+      setErro(err.message);
+    }
+  }
+
+  // ---------- tarefas ----------
 
   async function aoCriarTarefa(evento) {
     evento.preventDefault();
     const tituloLimpo = titulo.trim();
-    if (!tituloLimpo) return;
+    if (!tituloLimpo || !listaAtivaId) return;
 
     try {
       await api.criarTarefa({
         titulo: tituloLimpo,
         descricao: descricaoNova.trim(),
         categoria: categoriaNova.trim() || null,
+        listaId: listaAtivaId,
       });
       setTitulo('');
       setCategoriaNova('');
       setDescricaoNova('');
       setErro('');
-      await carregarTarefas();
+      await carregarTarefas(listaAtivaId);
     } catch (err) {
       setErro(err.message);
     }
@@ -76,7 +130,7 @@ export function TasksPage() {
       } else {
         await api.reabrirTarefa(tarefa.id);
       }
-      await carregarTarefas();
+      await carregarTarefas(listaAtivaId);
     } catch (err) {
       setErro(err.message);
     }
@@ -92,7 +146,7 @@ export function TasksPage() {
       });
       setTarefaEditando(null);
       setErro('');
-      await carregarTarefas();
+      await carregarTarefas(listaAtivaId);
     } catch (err) {
       setErro(err.message);
     }
@@ -103,29 +157,28 @@ export function TasksPage() {
       await api.removerTarefa(tarefaExcluindo.id);
       setTarefaExcluindo(null);
       setErro('');
-      await carregarTarefas();
+      await carregarTarefas(listaAtivaId);
     } catch (err) {
       setErro(err.message);
     }
   }
 
-  const listaFiltrada = useMemo(() => {
-    if (!categoriaAtiva) return tarefas;
-    return tarefas.filter((t) => (t.categoria || SEM_CATEGORIA) === categoriaAtiva);
-  }, [tarefas, categoriaAtiva]);
+  const categorias = useMemo(
+    () => [...new Set(tarefas.map((t) => t.categoria || SEM_CATEGORIA))].sort(),
+    [tarefas]
+  );
 
-  const pendentes = listaFiltrada.filter((t) => t.status !== 'concluida');
-  const concluidas = listaFiltrada.filter((t) => t.status === 'concluida');
+  const pendentes = tarefas.filter((t) => t.status !== 'concluida');
+  const concluidas = tarefas.filter((t) => t.status === 'concluida');
 
   const porCategoria = useMemo(() => {
-    if (categoriaAtiva) return null; // visão de categoria única não precisa agrupar
     return pendentes.reduce((acc, t) => {
       const chave = t.categoria || SEM_CATEGORIA;
       acc[chave] = acc[chave] || [];
       acc[chave].push(t);
       return acc;
     }, {});
-  }, [pendentes, categoriaAtiva]);
+  }, [pendentes]);
 
   return (
     <div className="app-shell">
@@ -135,32 +188,45 @@ export function TasksPage() {
           <span className="brand-tag">olá, {usuario?.nome?.split(' ')[0]}</span>
         </div>
 
-        <nav className="category-nav">
-          <button
-            type="button"
-            className={`category-item${categoriaAtiva === '' ? ' active' : ''}`}
-            onClick={() => setCategoriaAtiva('')}
-          >
-            Todas
+        <div className="listas-header">
+          <span>Suas listas</span>
+          <button type="button" className="btn-nova-lista" onClick={() => { setListaEditando(null); setListaModalAberto(true); }}>
+            + Nova
           </button>
-          {categorias.map((cat) => (
-            <button
-              key={cat}
-              type="button"
-              className={`category-item${categoriaAtiva === cat ? ' active' : ''}`}
-              onClick={() => setCategoriaAtiva(cat)}
-            >
-              {cat}
-            </button>
+        </div>
+
+        <nav className="category-nav">
+          {listas.map((lista) => (
+            <div key={lista.id} className={`lista-item-wrapper${lista.id === listaAtivaId ? ' active' : ''}`}>
+              <button
+                type="button"
+                className={`category-item${lista.id === listaAtivaId ? ' active' : ''}`}
+                onClick={() => setListaAtivaId(lista.id)}
+              >
+                {lista.nome}
+                {lista.resetarDiariamente && <span className="badge-reset" title="Reseta todo dia">↻</span>}
+              </button>
+              <div className="lista-item-acoes">
+                <button type="button" onClick={() => { setListaEditando(lista); setListaModalAberto(true); }}>Editar</button>
+                <button type="button" className="excluir" onClick={() => setListaExcluindo(lista)}>Excluir</button>
+              </div>
+            </div>
           ))}
+          {!carregandoListas && listas.length === 0 && (
+            <p className="estado-vazio-sidebar">Crie sua primeira lista.</p>
+          )}
         </nav>
       </aside>
 
       <main className="content">
         <header className="content-header">
           <div>
-            <h1>{categoriaAtiva || 'Todas'}</h1>
-            <p className="subtitle">Suas tarefas, organizadas por categoria.</p>
+            <h1>{listaAtiva?.nome || 'Suas tarefas'}</h1>
+            <p className="subtitle">
+              {listaAtiva?.resetarDiariamente
+                ? 'Essa lista reseta as tarefas concluídas todo dia.'
+                : 'Suas tarefas, organizadas por categoria.'}
+            </p>
           </div>
           <div className="user-chip">
             <span>{usuario?.nome}</span>
@@ -168,46 +234,53 @@ export function TasksPage() {
           </div>
         </header>
 
-        <form className="add-task-card" onSubmit={aoCriarTarefa}>
-          <div className="add-task-linha-principal">
-            <input
-              type="text"
-              placeholder="Escreva uma tarefa..."
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              required
-            />
-            <input
-              type="text"
-              list="categorias-existentes"
-              placeholder="Categoria (opcional)"
-              value={categoriaNova}
-              onChange={(e) => setCategoriaNova(e.target.value)}
-            />
-            <datalist id="categorias-existentes">
-              {categorias.map((cat) => <option key={cat} value={cat} />)}
-            </datalist>
-            <button type="submit">Adicionar</button>
-          </div>
-          <input
-            type="text"
-            className="add-task-descricao"
-            placeholder="Descrição (opcional)"
-            value={descricaoNova}
-            onChange={(e) => setDescricaoNova(e.target.value)}
-          />
-        </form>
-
         {erro && <p className="feedback">{erro}</p>}
 
-        {carregando ? (
-          <p className="estado-vazio">Carregando tarefas...</p>
-        ) : tarefas.length === 0 ? (
-          <p className="estado-vazio">Nada por aqui ainda. Adicione sua primeira tarefa acima.</p>
+        {!carregandoListas && listas.length === 0 ? (
+          <div className="estado-vazio-central">
+            <p>Você ainda não tem nenhuma lista.</p>
+            <button type="button" className="btn-dark" onClick={() => { setListaEditando(null); setListaModalAberto(true); }}>
+              Criar minha primeira lista
+            </button>
+          </div>
         ) : (
-          <div className="lista-tarefas">
-            {categoriaAtiva === '' ? (
-              <>
+          <>
+            <form className="add-task-card" onSubmit={aoCriarTarefa}>
+              <div className="add-task-linha-principal">
+                <input
+                  type="text"
+                  placeholder="Escreva uma tarefa..."
+                  value={titulo}
+                  onChange={(e) => setTitulo(e.target.value)}
+                  required
+                />
+                <input
+                  type="text"
+                  list="categorias-existentes"
+                  placeholder="Categoria (opcional)"
+                  value={categoriaNova}
+                  onChange={(e) => setCategoriaNova(e.target.value)}
+                />
+                <datalist id="categorias-existentes">
+                  {categorias.map((cat) => <option key={cat} value={cat} />)}
+                </datalist>
+                <button type="submit">Adicionar</button>
+              </div>
+              <input
+                type="text"
+                className="add-task-descricao"
+                placeholder="Descrição (opcional)"
+                value={descricaoNova}
+                onChange={(e) => setDescricaoNova(e.target.value)}
+              />
+            </form>
+
+            {carregandoTarefas ? (
+              <p className="estado-vazio">Carregando tarefas...</p>
+            ) : tarefas.length === 0 ? (
+              <p className="estado-vazio">Nada por aqui ainda. Adicione sua primeira tarefa acima.</p>
+            ) : (
+              <div className="lista-tarefas">
                 {Object.keys(porCategoria).sort().map((cat) => (
                   <div key={cat}>
                     <p className="secao-titulo">{cat}</p>
@@ -217,24 +290,39 @@ export function TasksPage() {
                   </div>
                 ))}
                 {pendentes.length === 0 && <p className="estado-vazio">Nenhuma tarefa pendente. Bom trabalho!</p>}
-              </>
-            ) : (
-              pendentes.map((t) => (
-                <TaskRow key={t.id} tarefa={t} onAlternar={aoAlternar} onEditar={setTarefaEditando} onExcluir={setTarefaExcluindo} />
-              ))
-            )}
 
-            {concluidas.length > 0 && (
-              <>
-                <p className="secao-titulo">Concluídas</p>
-                {concluidas.map((t) => (
-                  <TaskRow key={t.id} tarefa={t} onAlternar={aoAlternar} onEditar={setTarefaEditando} onExcluir={setTarefaExcluindo} />
-                ))}
-              </>
+                {concluidas.length > 0 && (
+                  <>
+                    <p className="secao-titulo">Concluídas</p>
+                    {concluidas.map((t) => (
+                      <TaskRow key={t.id} tarefa={t} onAlternar={aoAlternar} onEditar={setTarefaEditando} onExcluir={setTarefaExcluindo} />
+                    ))}
+                  </>
+                )}
+              </div>
             )}
-          </div>
+          </>
         )}
       </main>
+
+      <ListaFormModal
+        aberto={listaModalAberto}
+        listaEditando={listaEditando}
+        onFechar={() => { setListaModalAberto(false); setListaEditando(null); }}
+        onSalvar={aoSalvarLista}
+      />
+
+      <Modal titulo="Excluir lista" aberto={!!listaExcluindo} onFechar={() => setListaExcluindo(null)}>
+        {listaExcluindo && (
+          <div className="modal-form">
+            <p>Excluir a lista "<strong>{listaExcluindo.nome}</strong>"? Todas as tarefas dela também serão excluídas. Essa ação não pode ser desfeita.</p>
+            <div className="modal-footer">
+              <button type="button" className="btn-link" onClick={() => setListaExcluindo(null)}>Cancelar</button>
+              <button type="button" className="btn-danger" onClick={aoConfirmarExclusaoLista}>Excluir</button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <Modal titulo="Editar tarefa" aberto={!!tarefaEditando} onFechar={() => setTarefaEditando(null)}>
         {tarefaEditando && (
