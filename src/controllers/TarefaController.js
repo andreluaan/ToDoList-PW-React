@@ -6,7 +6,7 @@ class TarefaController {
 
   criar = (req, res) => {
     try {
-      const tarefa = this.service.criarTarefa(req.body, req.usuarioId);
+      const tarefa = this.service.criarTarefa(req.body, req.usuarioId, req.body.listaId);
       res.status(201).json(tarefa);
     } catch (err) {
       res.status(400).json({ erro: err.message });
@@ -14,7 +14,11 @@ class TarefaController {
   };
 
   listar = (req, res) => {
-    res.json(this.service.listarTarefas(req.usuarioId));
+    try {
+      res.json(this.service.listarTarefas(req.usuarioId, req.query.listaId));
+    } catch (err) {
+      res.status(400).json({ erro: err.message });
+    }
   };
 
   buscar = (req, res) => {
